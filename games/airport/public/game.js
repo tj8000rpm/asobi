@@ -14,7 +14,25 @@ try {
   const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
   if (saved && typeof saved === 'object') state = { ...state, ...saved, sound: saved.sound === true };
 } catch { /* Storage is optional. */ }
-const simulation = new AirportSimulation(state);
+let scoreboard = Array.isArray(state.scoreboard) ? state.scoreboard.filter(entry =>
+  entry && Number.isSafeInteger(entry.score) && entry.score >= 0 &&
+  Number.isSafeInteger(entry.landings) && entry.landings >= 0 && typeof entry.date === 'string'
+).sort((a, b) => b.score - a.score || b.landings - a.landings).slice(0, 10) : [];
+let simulation = new AirportSimulation(state);
+function renderScoreboard() {
+  const list = document.querySelector('#scoreboard');
+  list.replaceChildren();
+  for (const entry of scoreboard) {
+    const row = document.createElement('li');
+    row.textContent = `${entry.score}点 ・ ${entry.landings}機 ・ ${entry.date}`;
+    list.append(row);
+  }
+  if (!scoreboard.length) {
+    const row = document.createElement('li');
+    row.textContent = 'まだ きろくは ないよ';
+    list.append(row);
+  }
+}
 let selectedId = simulation.selectable[0].id;
 let audioContext;
 let paused = false;
@@ -25,9 +43,16 @@ let scorePulseUntil = 0;
 let scorePulseNice = false;
 let scorePulsePenalty = false;
 function save() {
-  state = { landings: simulation.landings, score: simulation.score, sound: state.sound };
+  state = { landings: simulation.landings, score: simulation.score, sound: state.sound, scoreboard };
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* Continue without saving. */ }
 }
+document.querySelector('#clear-scoreboard').addEventListener('click', () => {
+  if (!window.confirm('スコアボードの記録をすべて削除しますか？')) return;
+  scoreboard = [];
+  save();
+  renderScoreboard();
+  document.querySelector('#scoreboard-message').textContent = '記録をクリアしました';
+});
 function updateSound() {
   soundButton.setAttribute('aria-pressed', String(state.sound));
   soundButton.setAttribute('aria-label', state.sound ? '音をオフにする' : '音をオンにする');
@@ -83,6 +108,34 @@ function notify(text) {
   arrival.classList.add('visible');
   toastUntil = simulation.time + 2;
 }
+document.querySelector('#reset-score').addEventListener('click', () => {
+  if (!window.confirm('今回の記録をスコアボードに残して、スコア・着陸回数・飛行機の位置を最初に戻しますか？')) return;
+  if (simulation.landings > 0 || simulation.score > 0) {
+    scoreboard.push({ score: simulation.score, landings: simulation.landings, date: new Date().toLocaleString('ja-JP') });
+    scoreboard.sort((a, b) => b.score - a.score || b.landings - a.landings);
+    scoreboard = scoreboard.slice(0, 10);
+  }
+  simulation = new AirportSimulation();
+  selectedId = simulation.selectable[0].id;
+  for (const node of nodes.values()) node.remove();
+  nodes.clear();
+  paused = false;
+  pauseButton.textContent = 'Ⅱ';
+  pauseButton.setAttribute('aria-label', '一時停止する');
+  pauseButton.setAttribute('aria-pressed', 'false');
+  airport.classList.remove('paused');
+  previous = performance.now();
+  renderScoreboard();
+  scorePulseUntil = 0;
+  scorePulseNice = false;
+  scorePulsePenalty = false;
+  for (const popup of pointPopups) popup.node.remove();
+  pointPopups.length = 0;
+  save();
+  message.textContent = '記録を残して、最初から始めました';
+  notify('さいしょから はじめるよ');
+  render();
+});
 runways.forEach((button, index) => button.addEventListener('click', () => {
   if (paused) return;
   unlockAudio();
@@ -297,4 +350,5 @@ setInterval(() => {
   render();
 }, 1000 / 30);
 updateSound();
+renderScoreboard();
 render();

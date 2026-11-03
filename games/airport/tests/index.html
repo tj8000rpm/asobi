@@ -4,6 +4,7 @@
 <style>body{font-family:sans-serif;max-width:800px;margin:40px auto;padding:0 20px;color:#36574d}li{padding:8px}.failed{color:#ba423b}pre{white-space:pre-wrap}</style></head>
 <body data-status="running">
 <h1>空港ゲームの動作テスト</h1><p id="summary">実行中…</p><ol id="results"></ol>
+<iframe id="game-frame" src="../public/index.html" hidden></iframe>
 <script>
 'use strict';
 let failures = 0, total = 0;
@@ -22,6 +23,47 @@ function test(name, callback) {
 }
 window.addEventListener('error', () => { failures++; });
 window.addEventListener('load', () => {
+  test('reset confirms, restarts all traffic, and persists scoreboard records', () => {
+    const game = document.querySelector('#game-frame').contentWindow;
+    const originalSave = game.localStorage.getItem('little-airport-v1');
+    try {
+      game.eval(`
+        paused = true;
+        simulation.score = 120;
+        simulation.landings = 8;
+        simulation.tick(5);
+        const beforeReset = simulation;
+        window.confirm = () => false;
+        document.querySelector('#reset-score').click();
+        if (simulation !== beforeReset || simulation.score !== 120) throw new Error('cancel changed game');
+        window.confirm = () => true;
+        document.querySelector('#reset-score').click();
+        const fresh = new AirportSimulation();
+        if (simulation.score !== 0 || simulation.landings !== 0 || simulation.time !== 0 || paused) throw new Error('game did not restart');
+        if (JSON.stringify(simulation.flights) !== JSON.stringify(fresh.flights)) throw new Error('flight positions not reset');
+        if (simulation.runways.some(runway => runway.flightId !== null) || simulation.events.length) throw new Error('runway or events not reset');
+        const savedReset = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (savedReset.score !== 0 || savedReset.landings !== 0 || !savedReset.scoreboard.some(entry => entry.score === 120 && entry.landings === 8)) throw new Error('record not saved');
+        if (!document.querySelector('#scoreboard').textContent.includes('120点')) throw new Error('record not displayed');
+        window.confirm = () => false;
+        document.querySelector('#clear-scoreboard').click();
+        if (!scoreboard.some(entry => entry.score === 120)) throw new Error('cancel cleared records');
+        simulation.score = 25;
+        simulation.landings = 2;
+        const beforeClear = simulation;
+        window.confirm = () => true;
+        document.querySelector('#clear-scoreboard').click();
+        const cleared = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (scoreboard.length || cleared.scoreboard.length) throw new Error('records not cleared');
+        if (simulation !== beforeClear || simulation.score !== 25 || simulation.landings !== 2 || cleared.score !== 25 || cleared.landings !== 2) throw new Error('clear changed current game');
+        if (!document.querySelector('#scoreboard').textContent.includes('まだ')) throw new Error('empty board not displayed');
+
+      `);
+    } finally {
+      if (originalSave === null) game.localStorage.removeItem('little-airport-v1');
+      else game.localStorage.setItem('little-airport-v1', originalSave);
+    }
+  });
   const passed = total > 0 && failures === 0;
   document.body.dataset.status = passed ? 'passed' : 'failed';
   document.querySelector('#summary').textContent = `${total} tests, ${failures} failures`;

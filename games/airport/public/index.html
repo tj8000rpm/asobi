@@ -24,7 +24,12 @@
       <div class="tools">
         <button id="sound" class="tool sound" type="button" aria-label="音をオンにする" aria-pressed="false"><span aria-hidden="true">♪</span><span id="sound-label" class="sr-only">OFF</span></button>
         <button id="pause" class="tool" type="button" aria-label="一時停止する" aria-pressed="false">Ⅱ</button>
-        <details class="help">
+        <button id="reset-score" class="tool" type="button" aria-label="最初からやり直す" title="最初からやり直す">↺</button>
+        <details class="help scoreboard-panel" name="toolbar-panel">
+          <summary class="tool" aria-label="スコアボード" title="スコアボード">🏆</summary>
+          <div class="help-content"><h2>スコアボード（上位10件）</h2><ol id="scoreboard"></ol><button id="clear-scoreboard" type="button">記録をクリア</button><p id="scoreboard-message" role="status"></p></div>
+        </details>
+        <details class="help" name="toolbar-panel">
           <summary class="tool" aria-label="遊び方">?</summary>
           <div class="help-content"><h2>あそびかた</h2><p>みているだけでも ひこうきが おりてくるよ。</p><p>✈ ひこうき → A・B・C・D をタッチして あんない！</p><p>ちゃくりくで いつでも ★10<br>あんないで さらに ★10<br>おすすめへ あんないで さらに ★20<br>たいきしている ひこうきは さらに ★5</p><p>30びょう まつと ★−5。<br>そのあとも 15びょうごとに ★−5。<br>あせっている ひこうきを たすけてね。</p><p class="help-legend">★ スコア　✈ ちゃくりく　⟳ たいき</p></div>
         </details>
