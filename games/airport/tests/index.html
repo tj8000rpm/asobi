@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ja">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>空港ゲームの動作テスト</title>
+<style>body{font-family:sans-serif;max-width:800px;margin:40px auto;padding:0 20px;color:#36574d}li{padding:8px}.failed{color:#ba423b}pre{white-space:pre-wrap}</style></head>
+<body data-status="running">
+<h1>空港ゲームの動作テスト</h1><p id="summary">実行中…</p><ol id="results"></ol>
+<script>
+'use strict';
+let failures = 0, total = 0;
+function check(condition, message) { if (!condition) throw new Error(message || 'Assertion failed'); }
+const assert = {
+  ok: check,
+  equal(actual, expected) { check(actual === expected, `${actual} !== ${expected}`); },
+  notEqual(actual, expected) { check(actual !== expected, `${actual} === ${expected}`); }
+};
+function test(name, callback) {
+  total++;
+  const row = document.createElement('li');
+  try { callback(); row.textContent = `✓ ${name}`; }
+  catch (error) { failures++; row.className = 'failed'; row.textContent = `✗ ${name}: ${error.message}`; }
+  document.querySelector('#results').append(row);
+}
+window.addEventListener('error', () => { failures++; });
+window.addEventListener('load', () => {
+  const passed = total > 0 && failures === 0;
+  document.body.dataset.status = passed ? 'passed' : 'failed';
+  document.querySelector('#summary').textContent = `${total} tests, ${failures} failures`;
+});
+</script>
+<script src="../public/simulation.js"></script>
+<script src="game.test.js"></script>
+</body>
+</html>
